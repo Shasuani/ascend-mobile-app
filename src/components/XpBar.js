@@ -20,7 +20,7 @@ export default function XpBar({ pct = 0, color = colors.cyan, height = 9 }) {
 
   return (
     <View style={[styles.track, { height }]}>
-      <Animated.View style={[styles.fillWrap, { width }, glow(color, 8, 0.8)]}>
+      <Animated.View style={[styles.fillWrap, { width }, glow(color, 4, 0.35)]}>
         <LinearGradient
           colors={[color, color + '55']}
           start={{ x: 0, y: 0 }}
@@ -34,7 +34,7 @@ export default function XpBar({ pct = 0, color = colors.cyan, height = 9 }) {
 
 const styles = StyleSheet.create({
   track: {
-    backgroundColor: '#161310',
+    backgroundColor: '#1a1012',
     borderRadius: 4,
     overflow: 'hidden',
     borderWidth: 1,

@@ -8,7 +8,8 @@ import SystemWindow from '../components/SystemWindow';
 import BarChart from '../components/BarChart';
 import XpBar from '../components/XpBar';
 import { useStore } from '../state/StoreContext';
-import { titleFor, evaluateAchievements } from '../logic/achievements';
+import { evaluateAchievements } from '../logic/achievements';
+import { stageForLevel, ringFor } from '../logic/mastery';
 import { dailyXpSeries, dailyCompletionSeries } from '../logic/history';
 
 export default function Journey() {
@@ -22,10 +23,10 @@ export default function Journey() {
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <Label color={colors.cyanDim}>Journey</Label>
-      <Title style={{ marginTop: 2 }}>{titleFor(stats.rank)}</Title>
+      <Label color={colors.cyanDim}>The Journey</Label>
+      <Title style={{ marginTop: 2 }}>{stageForLevel(stats.level).name} · {ringFor(stats.strongest)}</Title>
       <Txt color={colors.muted} style={{ marginTop: 4 }}>
-        Rank {stats.rank} · Level {stats.level} · {unlockedCount}/{achievements.length} achievements
+        Level {stats.level} · {unlockedCount}/{achievements.length} trials won
       </Txt>
 
       <SystemWindow style={styles.block} scan={false}>
@@ -39,10 +40,10 @@ export default function Journey() {
       </SystemWindow>
 
       <SystemWindow style={styles.block} scan={false}>
-        <Label style={{ marginBottom: space.sm }}>Attribute XP</Label>
+        <Label style={{ marginBottom: space.sm }}>The Five Rings</Label>
         {ATTR_ORDER.map((k) => (
           <View key={k} style={styles.attrRow}>
-            <Label color={ATTRS[k].accent} style={{ width: 44 }}>{k}</Label>
+            <Label color={ATTRS[k].accent} style={{ width: 52 }}>{ringFor(k)}</Label>
             <View style={{ flex: 1, marginHorizontal: space.md }}>
               <XpBar pct={Math.min(1, stats.attributes[k].xp / Math.max(1, Math.max(...attrData.map((a) => a.value))))} color={ATTRS[k].accent} height={6} />
             </View>
@@ -51,7 +52,7 @@ export default function Journey() {
         ))}
       </SystemWindow>
 
-      <Label style={{ marginTop: space.xl, marginBottom: space.sm }}>Achievements</Label>
+      <Label style={{ marginTop: space.xl, marginBottom: space.sm }}>Trials</Label>
       {achievements.map((a) => (
         <View key={a.id} style={[styles.ach, { borderColor: a.unlocked ? colors.gold : colors.line }]}>
           <View style={styles.achHead}>

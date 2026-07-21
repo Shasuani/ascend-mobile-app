@@ -23,7 +23,7 @@ const GRACE_INTERVAL_DAYS = 7; // auto grace-day frequency (§8)
 
 // ---- pure helpers -------------------------------------------------------
 
-// Today's quest list: workday template on work days, else rest-day template.
+// Today's quest list from the live weekly template (workday vs rest-day).
 export function boardFor(state, now = new Date()) {
   const week = state.week;
   if (!week) return [];
@@ -31,10 +31,30 @@ export function boardFor(state, now = new Date()) {
   return (isWork ? week.workday : week.restday) || [];
 }
 
+// The board actually SHOWN today: rebuilt from today's __assigned snapshot via the
+// registry, so regenerating the week can't hand you a fresh, re-completable set for
+// a day you've already worked. Falls back to the live template before the snapshot.
+export function todayBoard(state, now = new Date()) {
+  const today = dateKey(now);
+  const entry = state.progress?.[today];
+  const registry = state.registry || {};
+  if (entry && entry.__assigned && entry.__assigned.length) {
+    return entry.__assigned.map((id) => (registry[id] ? { id, ...registry[id] } : null)).filter(Boolean);
+  }
+  return boardFor(state, now);
+}
+
 function addQuestsToRegistry(registry, quests) {
   const next = { ...registry };
   for (const q of quests) {
-    if (q && q.id) next[q.id] = { title: q.title, attr: q.attr, xp: q.xp };
+    if (q && q.id) {
+      // Store the full quest so a day's board can be rebuilt from its __assigned
+      // snapshot even after the week is regenerated (prevents XP re-farming).
+      next[q.id] = {
+        title: q.title, attr: q.attr, xp: q.xp,
+        window: q.window, why: q.why, duration_min: q.duration_min,
+      };
+    }
   }
   return next;
 }
@@ -132,6 +152,21 @@ function refreshStreak(state, now = new Date()) {
   };
 }
 
+// Presence streak: count each new day the app is opened. Showing up is the first
+// win against the scroll — this rewards it directly.
+function bumpVisitStreak(state, now = new Date()) {
+  const today = dateKey(now);
+  if (state.lastVisitDate === today) return state; // already counted today
+  const yesterday = dateKey(daysAgo(1, now));
+  const visitStreak = state.lastVisitDate === yesterday ? (state.visitStreak || 0) + 1 : 1;
+  return {
+    ...state,
+    visitStreak,
+    longestVisitStreak: Math.max(state.longestVisitStreak || 0, visitStreak),
+    lastVisitDate: today,
+  };
+}
+
 // ---- provider -----------------------------------------------------------
 
 export function StoreProvider({ children, userId = 'default', userName }) {
@@ -157,6 +192,7 @@ export function StoreProvider({ children, userId = 'default', userName }) {
         loaded = makeDefaultState();
       }
       loaded.progress = prune(loaded.progress);
+      loaded = bumpVisitStreak(loaded);
       if (loaded.calibrated) {
         loaded = applyRolloverPenalty(loaded);
         loaded = ensureToday(loaded);
@@ -243,16 +279,23 @@ export function StoreProvider({ children, userId = 'default', userName }) {
     },
 
     // Claim the weekly boss (big XP, separate from the daily all-clear) (§7).
+    // Claimable once per week — regenerating can't reset it to farm XP.
     claimBoss() {
       patch((prev) => {
         if (!prev.week?.boss) return prev;
-        const boss = prev.week.boss;
         const today = dateKey();
+        if (prev.bossClaimedDate && daysBetween(prev.bossClaimedDate, today) < 7) return prev;
+        const boss = prev.week.boss;
         const progress = { ...prev.progress };
         const entry = { ...(progress[today] || {}) };
         entry[boss.id] = true;
         progress[today] = entry;
-        return { ...prev, progress, registry: addQuestsToRegistry(prev.registry, [boss]) };
+        return {
+          ...prev,
+          progress,
+          registry: addQuestsToRegistry(prev.registry, [boss]),
+          bossClaimedDate: today,
+        };
       });
     },
 
@@ -437,7 +480,7 @@ export function StoreProvider({ children, userId = 'default', userName }) {
     state,
     stats,
     ready: !!state,
-    board: state ? boardFor(state) : [],
+    board: state ? todayBoard(state) : [],
     isWorkToday: state ? state.profile.workDays.includes(dayCode()) : false,
     reviewReady,
     actions,

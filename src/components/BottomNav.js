@@ -1,32 +1,36 @@
-// Bottom tab bar — glassy gradient with a glowing active indicator.
+// Bottom tab bar — a quiet ink strip with brush-kanji tabs and a crimson top edge
+// marking the active screen.
 
 import React from 'react';
-import { Pressable, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, space, glow } from '../theme/tokens';
-import { Label } from './typography';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { colors, space } from '../theme/tokens';
+import { Kanji, Label } from './typography';
 
 const TABS = [
-  { key: 'quests', icon: '◈', label: 'Quests' },
-  { key: 'hubs', icon: '📚', label: 'Hubs' },
-  { key: 'journey', icon: '📈', label: 'Journey' },
-  { key: 'journal', icon: '✒', label: 'Journal' },
+  { key: 'quests', kanji: '道', label: 'Way' },
+  { key: 'hubs', kanji: '導', label: 'Paths' },
+  { key: 'journey', kanji: '輪', label: 'Rings' },
+  { key: 'journal', kanji: '記', label: 'Ledger' },
 ];
 
 export default function BottomNav({ tab, onChange }) {
   return (
-    <LinearGradient colors={['#16171f', '#0a0b0e']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.bar}>
+    <View style={styles.bar}>
       {TABS.map((t) => {
         const active = tab === t.key;
+        const tint = active ? colors.cyan : colors.muted;
         return (
-          <Pressable key={t.key} onPress={() => onChange(t.key)} style={styles.tab}>
-            {active && <LinearGradient colors={[colors.cyan, colors.cyanDim]} style={[styles.indicator, glow(colors.cyan, 6, 0.9)]} />}
-            <Label color={active ? colors.cyanBright : colors.muted} style={styles.icon}>{t.icon}</Label>
-            <Label color={active ? colors.cyan : colors.muted} style={{ fontSize: 10 }}>{t.label}</Label>
+          <Pressable
+            key={t.key}
+            onPress={() => onChange(t.key)}
+            style={[styles.tab, { borderTopColor: active ? colors.cyan : 'transparent' }]}
+          >
+            <Kanji color={tint} style={styles.kanji}>{t.kanji}</Kanji>
+            <Label color={tint} style={styles.label}>{t.label}</Label>
           </Pressable>
         );
       })}
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -35,10 +39,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingBottom: 24,
-    paddingTop: space.md,
+    backgroundColor: '#0a0706',
   },
-  tab: { flex: 1, alignItems: 'center', gap: 3 },
-  icon: { fontSize: 18 },
-  indicator: { position: 'absolute', top: -space.md, width: 30, height: 3, borderRadius: 2 },
+  tab: {
+    flex: 1, alignItems: 'center', gap: 5,
+    paddingTop: 11, paddingBottom: 24,
+    borderTopWidth: 2,
+    marginTop: -1, // overlap the bar's hairline so the active edge sits on it
+  },
+  kanji: { fontSize: 20, lineHeight: 24 },
+  label: { fontSize: 8, letterSpacing: 1.2 },
 });

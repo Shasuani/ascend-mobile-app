@@ -1,34 +1,28 @@
-// Main board (§7, §11): status window, attributes, daily quests, weekly trial,
-// footer — plus penalty banner, level-up, and the weekly System Report.
+// The home board — "Today's Way". Musashi framing over the level engine: a stage
+// of mastery in an ensō, a daily Dokkōdō precept, the day's path, and the weekly
+// trial. Visual match to the Musashi prototype; all state/actions preserved.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ScrollView, Pressable, TextInput, StyleSheet } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, space, fonts, glow, gradients, ATTRS, ATTR_ORDER } from '../theme/tokens';
-import { Title, Label, Txt, Num } from '../components/typography';
-import GlowButton from '../components/GlowButton';
-import SystemWindow from '../components/SystemWindow';
-import AttributeRadar from '../components/AttributeRadar';
-import XpBar from '../components/XpBar';
+import { colors, space, gradients } from '../theme/tokens';
+import { Title, Label, Txt, Num, Precept, Kanji } from '../components/typography';
+import Enso from '../components/Enso';
 import QuestRow from '../components/QuestRow';
 import PenaltyBanner from '../components/PenaltyBanner';
-import SystemDirective from '../components/SystemDirective';
 import LevelUpModal from '../components/LevelUpModal';
 import SystemReportModal from '../components/SystemReportModal';
 import SettingsModal from '../components/SettingsModal';
-import useCountdown from '../hooks/useCountdown';
-import { dateKey } from '../logic/dates';
+import { dateKey, daysBetween } from '../logic/dates';
 import { localRecap } from '../logic/review';
-import { titleFor } from '../logic/achievements';
+import { stageForLevel, nextStage } from '../logic/mastery';
+import { preceptForToday, romanize, kanjiNum } from '../data/dokkodo';
 import { useStore } from '../state/StoreContext';
 import { useAuth } from '../auth/AuthContext';
-
-const ATTR_DISPLAY_MAX = 30;
 
 export default function Main() {
   const { state, stats, board, isWorkToday, reviewReady, actions } = useStore();
   const { actions: authActions } = useAuth();
-  const countdown = useCountdown();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [report, setReport] = useState(null);
@@ -36,13 +30,11 @@ export default function Main() {
   const prevLevel = useRef(stats.level);
   const reviewRan = useRef(false);
 
-  // Detect a level increase → celebrate.
   useEffect(() => {
     if (stats.level > prevLevel.current) setLevelUp(stats.level);
     prevLevel.current = stats.level;
   }, [stats.level]);
 
-  // Auto-run the weekly review when it's due (§9), then show the report.
   useEffect(() => {
     if (reviewReady && !reviewRan.current) {
       reviewRan.current = true;
@@ -53,133 +45,138 @@ export default function Main() {
   const todayEntry = state.progress[dateKey()] || {};
   const doneCount = board.filter((q) => todayEntry[q.id]).length;
   const boss = state.week?.boss;
-  const bossDone = boss ? !!todayEntry[boss.id] : false;
+  const bossDone = !!state.bossClaimedDate && daysBetween(state.bossClaimedDate, dateKey()) < 7;
+
+  const stage = stageForLevel(stats.level);
+  const next = nextStage(stats.level);
+  const precept = preceptForToday(dateKey());
+  const meritPct = Math.round((stats.xpInto / Math.max(1, stats.xpNeed)) * 100);
+  const presence = state.visitStreak || 0;
+  const perfect = state.streak || 0;
+  const trialGoal = 7;
+  const trialProgress = Math.min(perfect, trialGoal);
+  const pad2 = (n) => String(n).padStart(2, '0');
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <SystemDirective />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* ---- Header ---- */}
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.kicker}>
+              <Kanji color={colors.muted} style={{ fontSize: 12 }}>武者</Kanji>
+              <Label color={colors.muted}> · Hunter</Label>
+            </View>
+            <Title style={styles.name} numberOfLines={1}>{titleCase(state.name)}</Title>
+          </View>
+          <Pressable style={styles.profileBtn} onPress={() => setSettingsOpen(true)}>
+            <Kanji color={colors.muted2} style={{ fontSize: 18 }}>己</Kanji>
+          </Pressable>
+        </View>
 
         {reviewReady && (
           <Pressable style={styles.reviewBanner} onPress={() => actions.runReview().then(setReport)}>
-            <Label color={colors.cyan}>System Report ready — tap to view</Label>
+            <Label color={colors.cyanBright}>The Report is ready — tap to face it</Label>
           </Pressable>
         )}
 
-        {/* ---- Status window ---- */}
-        <SystemWindow style={styles.block}>
-          <View style={styles.statusTop}>
-            <LinearGradient colors={['#5a2a10', '#12100c']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.rankBadge}>
-              <Num color={colors.cyanBright} style={styles.rankLetter}>{stats.rank}</Num>
-              <Label color={colors.cyan} style={{ fontSize: 8 }}>RANK</Label>
-            </LinearGradient>
-            <View style={{ flex: 1, marginLeft: space.md }}>
-              <TextInput
-                value={state.name}
-                onChangeText={actions.setName}
-                style={styles.name}
-                maxLength={16}
-              />
-              <Label color={colors.gold} style={{ marginTop: 2 }}>{titleFor(stats.rank)}</Label>
-              <View style={styles.levelRow}>
-                <Label>Level</Label>
-                <Num color={colors.cyan} style={{ fontSize: 18 }}>{stats.level}</Num>
-                <Num color={colors.muted} style={{ fontSize: 12 }}>
-                  {stats.xpInto}/{stats.xpNeed} XP
-                </Num>
-              </View>
-              <XpBar pct={stats.xpPct} />
+        {/* ---- Stage of mastery ---- */}
+        <LinearGradient colors={gradients.panel} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.card}>
+          <View style={styles.masteryTop}>
+            <Enso size={72} stroke={4} arc={238} rotate={-118}>
+              <Kanji color={colors.text} style={{ fontSize: 34, lineHeight: 40 }}>{stage.kanji}</Kanji>
+            </Enso>
+            <View style={{ flex: 1, marginLeft: 18 }}>
+              <Label color={colors.muted}>Stage of Mastery</Label>
+              <Title style={styles.stageName}>{stage.name}</Title>
+              <Precept color={colors.muted3} style={styles.stageTitle}>{stage.title}</Precept>
             </View>
           </View>
 
-          <View style={styles.radarWrap}>
-            <AttributeRadar attributes={stats.attributes} />
+          <View style={styles.meritHead}>
+            <Num color={colors.muted} style={styles.meritLabel}>{up(stage.name)} → {next.name === stage.name ? 'MASTERY' : up(next.name)}</Num>
+            <Num color={colors.muted3} style={styles.meritLabel}>{stats.xpInto} / {stats.xpNeed}</Num>
           </View>
-        </SystemWindow>
-
-        {/* ---- Attributes ---- */}
-        <SystemWindow style={styles.block} scan={false}>
-          <View style={styles.blockHead}>
-            <Label>Attributes</Label>
-            {stats.freePoints > 0 && (
-              <Label color={colors.gold}>{stats.freePoints} points to allocate</Label>
-            )}
+          <View style={styles.track}>
+            <View style={[styles.fill, { width: `${meritPct}%` }]} />
           </View>
-          {ATTR_ORDER.map((k) => {
-            const a = stats.attributes[k];
-            const meta = ATTRS[k];
-            const isFocus = state.profile.focusAreas.includes(k);
-            return (
-              <View key={k} style={styles.attrRow}>
-                <View style={styles.attrLabel}>
-                  <Txt color={meta.accent} style={{ fontSize: 14 }}>
-                    {isFocus ? '◆ ' : ''}{k}
-                  </Txt>
-                </View>
-                <View style={{ flex: 1, marginHorizontal: space.md }}>
-                  <XpBar pct={a.value / ATTR_DISPLAY_MAX} color={meta.accent} height={6} />
-                </View>
-                <Num color={colors.text} style={{ width: 28, textAlign: 'right' }}>{a.value}</Num>
-                {stats.freePoints > 0 ? (
-                  <Pressable onPress={() => actions.allocatePoint(k)} style={styles.plus}>
-                    <Txt color={colors.void} style={{ fontFamily: fonts.displayBold }}>＋</Txt>
-                  </Pressable>
-                ) : (
-                  <View style={styles.plusSpacer} />
-                )}
-              </View>
-            );
-          })}
-        </SystemWindow>
 
-        {/* ---- Daily quests ---- */}
-        <SystemWindow style={styles.block}>
-          <View style={styles.blockHead}>
-            <Title style={{ fontSize: 16 }}>⚠ {isWorkToday ? 'DAILY QUESTS' : 'REST DAY'}</Title>
-            <Num color={colors.red}>{countdown}</Num>
+          <View style={styles.statRow}>
+            <Stat value={presence} label="Day Presence" color={colors.text} />
+            <Stat value={perfect} label="Perfect Days" color={colors.cyan} />
           </View>
-          <Label color={colors.muted} style={{ marginBottom: space.sm }}>
-            {doneCount}/{board.length} complete · resets at midnight
-          </Label>
-          {board.length === 0 && <Txt color={colors.muted}>No quests assigned.</Txt>}
-          {board.map((q) => (
-            <QuestRow key={q.id} quest={q} done={!!todayEntry[q.id]} onToggle={() => actions.toggleQuest(q)} />
-          ))}
-        </SystemWindow>
+        </LinearGradient>
 
-        {/* ---- Weekly Trial (boss) ---- */}
-        {boss && (
-          <SystemWindow style={styles.block} accent={colors.gold} scan={false}>
-            <Label color={colors.gold}>Weekly Trial</Label>
-            <Title style={{ marginTop: 4 }}>{boss.title}</Title>
-            <Txt color={colors.muted} style={{ marginTop: 4 }}>{boss.why}</Txt>
-            <View style={styles.bossRow}>
-              <Num color={colors.gold} style={{ fontSize: 18 }}>+{boss.xp} XP</Num>
-              <GlowButton
-                label={bossDone ? 'CLEARED' : 'CLAIM'}
-                variant="gold"
-                disabled={bossDone}
-                onPress={actions.claimBoss}
-              />
-            </View>
-          </SystemWindow>
-        )}
-
-        {/* ---- Footer ---- */}
-        <View style={styles.footer}>
-          <View style={styles.streak}>
-            <Txt style={{ fontSize: 18 }}>🔥</Txt>
-            <Num color={colors.gold} style={{ fontSize: 18 }}>{state.streak}</Num>
-            <Label>streak</Label>
-          </View>
-          <View style={styles.footerBtns}>
-            <GlowButton label="Regenerate" variant="ghost" size="sm" onPress={actions.regenerate} />
-            <GlowButton label="Edit" variant="ghost" size="sm" onPress={actions.recalibrate} />
-            <Pressable onPress={() => setSettingsOpen(true)} style={styles.gear}><Txt color={colors.muted} style={{ fontSize: 20 }}>⚙</Txt></Pressable>
+        {/* ---- Daily Dokkōdō precept ---- */}
+        <View style={styles.precept}>
+          <Kanji color={colors.cyan} style={styles.preceptKanji}>{kanjiNum(precept.number)}</Kanji>
+          <View style={{ flex: 1 }}>
+            <Label color={colors.muted}>Dokkōdō · Precept {romanize(precept.number)}</Label>
+            <Precept color={colors.text3} style={styles.preceptText}>{precept.text}</Precept>
           </View>
         </View>
 
-        <View style={{ height: 80 }} />
+        {/* ---- Today's Way (the daily path) ---- */}
+        <View style={styles.programHead}>
+          <View style={styles.programTitle}>
+            <Kanji color={colors.text} style={{ fontSize: 17 }}>今日の道</Kanji>
+            <Title style={{ fontSize: 18 }}> · {isWorkToday ? "Today's Way" : 'Day of Rest'}</Title>
+          </View>
+          <Num color={colors.cyan} style={{ fontSize: 11 }}>{pad2(doneCount)} / {pad2(board.length)} KEPT</Num>
+        </View>
+
+        {board.length === 0 ? (
+          <View style={styles.empty}><Txt color={colors.muted}>No path assigned.</Txt></View>
+        ) : (
+          <View style={styles.list}>
+            {board.map((q, i) => (
+              <QuestRow
+                key={q.id}
+                quest={q}
+                done={!!todayEntry[q.id]}
+                onToggle={() => actions.toggleQuest(q)}
+                last={i === board.length - 1}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* ---- The weekly trial ---- */}
+        {boss && (
+          <LinearGradient colors={gradients.panelHot} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.trial}>
+            <View style={styles.trialTop}>
+              <View style={styles.trialHead}>
+                <Kanji heavy color={colors.cyan} style={{ fontSize: 28, lineHeight: 32 }}>試</Kanji>
+                <View>
+                  <Label color={colors.cyanDim}>Weekly Trial</Label>
+                  <Title style={{ fontSize: 18 }} numberOfLines={1}>{boss.title}</Title>
+                </View>
+              </View>
+              <Num color={colors.text} style={{ fontSize: 15 }}>{trialProgress}<Num color={colors.muted} style={{ fontSize: 15 }}>/{trialGoal}</Num></Num>
+            </View>
+            <View style={styles.dots}>
+              {Array.from({ length: trialGoal }).map((_, i) => (
+                <View key={i} style={[styles.dot, { backgroundColor: i < trialProgress ? colors.cyan : colors.line }]} />
+              ))}
+            </View>
+            <Pressable
+              onPress={!bossDone && trialProgress >= trialGoal ? actions.claimBoss : undefined}
+              style={[styles.claim, bossDone ? styles.claimDone : trialProgress >= trialGoal ? styles.claimReady : styles.claimWait]}
+            >
+              <Title color={bossDone ? colors.muted : trialProgress >= trialGoal ? colors.text : colors.muted2} style={{ fontSize: 15 }}>
+                {bossDone ? `Trial claimed · +${boss.xp} merit` : trialProgress >= trialGoal ? `Claim the trial  →` : `Keep the vow · ${trialGoal - trialProgress} days left`}
+              </Title>
+            </Pressable>
+          </LinearGradient>
+        )}
+
+        {/* ---- Discreet path controls ---- */}
+        <View style={styles.footer}>
+          <Pressable onPress={actions.regenerate}><Label color={colors.muted}>↻ Renew path</Label></Pressable>
+          <Pressable onPress={actions.recalibrate}><Label color={colors.muted}>✎ Edit profile</Label></Pressable>
+        </View>
+
+        <View style={{ height: 90 }} />
       </ScrollView>
 
       {state.penalty?.active && (
@@ -207,46 +204,69 @@ export default function Main() {
   );
 }
 
+function Stat({ value, label, color }) {
+  return (
+    <View style={styles.stat}>
+      <Num color={color} style={styles.statValue}>{value}</Num>
+      <Label color={colors.muted} style={styles.statLabel}>{label}</Label>
+    </View>
+  );
+}
+
+// Names are stored uppercased; show them in Title Case for the serif display.
+function titleCase(s) {
+  return String(s || 'Hunter').toLowerCase().replace(/(^|[\s.])\w/g, (c) => c.toUpperCase());
+}
+const up = (s) => String(s || '').toUpperCase();
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: space.md, paddingTop: 56 },
-  block: { marginBottom: space.md },
-  blockHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
+  scroll: { paddingHorizontal: space.xl, paddingTop: 64, paddingBottom: space.lg },
 
-  statusTop: { flexDirection: 'row', alignItems: 'center' },
-  rankBadge: {
-    width: 66, height: 66, borderRadius: 4, borderWidth: 1, borderColor: colors.cyan,
-    alignItems: 'center', justifyContent: 'center',
-    ...glow(colors.cyan, 14, 0.6),
-  },
-  rankLetter: { fontSize: 34, lineHeight: 38 },
-  name: {
-    fontFamily: fonts.displayBold, color: colors.text, fontSize: 22, letterSpacing: 1, padding: 0,
-    textShadowColor: colors.cyan, textShadowRadius: 8, textShadowOffset: { width: 0, height: 0 },
-  },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginVertical: 4 },
-  radarWrap: { alignItems: 'center', marginTop: space.md },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  kicker: { flexDirection: 'row', alignItems: 'center' },
+  name: { fontSize: 24, marginTop: 1 },
+  profileBtn: { width: 42, height: 42, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
 
-  attrRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space.sm },
-  attrLabel: { width: 44 },
-  plus: {
-    width: 26, height: 26, marginLeft: space.sm, borderRadius: 4, backgroundColor: colors.cyan,
-    alignItems: 'center', justifyContent: 'center',
-    ...glow(colors.cyan, 8, 0.6),
-  },
-  plusSpacer: { width: 26, marginLeft: space.sm },
-  gear: { padding: space.sm },
+  card: { borderWidth: 1, borderColor: colors.line, padding: 20 },
+  masteryTop: { flexDirection: 'row', alignItems: 'center' },
+  stageName: { fontSize: 27, lineHeight: 30, marginTop: 1 },
+  stageTitle: { fontSize: 14, marginTop: 2 },
 
-  bossRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.md },
-  bossBtn: { backgroundColor: colors.gold, borderRadius: 4, paddingVertical: space.sm, paddingHorizontal: space.xl },
+  meritHead: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, marginBottom: 6 },
+  meritLabel: { fontSize: 9.5, letterSpacing: 0.6 },
+  track: { height: 5, backgroundColor: colors.line2 },
+  fill: { height: '100%', backgroundColor: colors.cyan },
 
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.sm },
-  streak: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  footerBtns: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  footBtn: { padding: space.sm },
+  statRow: { flexDirection: 'row', marginTop: 16, gap: space.xl },
+  stat: { flexDirection: 'row', alignItems: 'baseline' },
+  statValue: { fontSize: 20 },
+  statLabel: { fontSize: 9, marginLeft: 5 },
+
+  precept: { flexDirection: 'row', gap: 14, alignItems: 'flex-start', borderLeftWidth: 2, borderLeftColor: colors.cyan, paddingLeft: 16, marginTop: 20 },
+  preceptKanji: { fontSize: 22, lineHeight: 24 },
+  preceptText: { fontSize: 17, lineHeight: 24, marginTop: 4 },
+
+  programHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 24, marginBottom: 14 },
+  programTitle: { flexDirection: 'row', alignItems: 'baseline' },
+
+  list: { borderWidth: 1, borderColor: colors.line },
+  empty: { borderWidth: 1, borderColor: colors.line, padding: space.lg, alignItems: 'center' },
+
+  trial: { borderWidth: 1, borderColor: colors.crimsonLine, padding: 18, marginTop: 20 },
+  trialTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  trialHead: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  dots: { flexDirection: 'row', gap: 5, marginTop: 14 },
+  dot: { flex: 1, height: 6 },
+  claim: { marginTop: 16, paddingVertical: 12, alignItems: 'center', borderWidth: 1 },
+  claimReady: { backgroundColor: colors.cyan, borderColor: colors.cyan },
+  claimWait: { backgroundColor: 'transparent', borderColor: colors.crimsonLine },
+  claimDone: { backgroundColor: 'transparent', borderColor: colors.crimsonLine },
+
+  footer: { flexDirection: 'row', justifyContent: 'center', gap: space.xxl, marginTop: 22 },
 
   reviewBanner: {
-    borderWidth: 1, borderColor: colors.cyan, borderRadius: 4, padding: space.md,
+    borderWidth: 1, borderColor: colors.cyan, padding: space.md,
     alignItems: 'center', marginBottom: space.md, backgroundColor: colors.cyanDeep,
   },
 });

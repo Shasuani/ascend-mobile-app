@@ -20,9 +20,10 @@ export default function GlowButton({ label, onPress, disabled, variant = 'primar
   }
 
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={[glow(accent, 12, 0.55), disabled && styles.dim, style]}>
+    <Pressable onPress={onPress} disabled={disabled} style={[glow(accent, 7, 0.3), disabled && styles.dim, style]}>
       <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.fill, pad]}>
-        <Label color={colors.ink} style={{ fontFamily: fonts.displayBold, fontSize: 13 }}>{label}</Label>
+        {/* dark text on bright gold; bone text on crimson/red for contrast */}
+        <Label color={variant === 'gold' ? colors.ink : colors.text} style={{ fontFamily: fonts.mono, fontSize: 12 }}>{label}</Label>
       </LinearGradient>
     </Pressable>
   );

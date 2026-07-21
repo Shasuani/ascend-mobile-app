@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     minHeight: 130,
     textAlignVertical: 'top',
-    backgroundColor: '#161310',
+    backgroundColor: '#1a1012',
     lineHeight: 22,
   },
   histHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.xl, marginBottom: space.md },

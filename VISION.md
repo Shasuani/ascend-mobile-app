@@ -137,6 +137,43 @@ program. Agents run weekly, keeping AI cost low.
 
 ---
 
+## Methodology — how real results happen (3–4 months)
+
+Results in 3–4 months require three things true at once: **(1)** proven progressive
+methods, **(2)** adherence (the game layer's job), and **(3)** measuring baseline →
+now so change is *visible*. The efficacy engine:
+
+**Measurable baselines** at onboarding, per ring — captured as numbers so we can
+show change: Fire (max push-ups, can you run 1 km?), Water (pages/week, a skill
+goal), Wind (do you budget? savings rate?), Earth (sleep hours, steps, meals), Void
+(daily screen time, meditation?).
+
+**Progression ladders** — each coach escalates with a proven method, not generic
+tips:
+- Fire → progressive overload: daily movement → structured program → *+X push-ups,
+  run 5 km by week 12* (progressive resistance guarantees strength gains in 8–12 wks).
+- Water → 15 pages/day → 3–4 books in 3 months + one skill milestone.
+- Wind → track spending → automate savings → launch one income stream → *saved €X,
+  earned first €*.
+- Earth → consistent sleep window → hydration → whole-food meals → *avg sleep ↑, steps ↑*.
+- Void → 10-min meditation + one deep-work block + cut 30 min screen time → *phone-free hours ↑*.
+
+**The First Ascent — a 12-week periodized arc.** Wk 1–2: baseline + install 2
+keystones (small). Wk 3–6: build consistency + one spotlight ring. Wk 7–11:
+progressive overload + rotating spotlight → first visible results. Wk 12: re-test vs
+baseline → the app shows "you went from X to Y."
+
+**Visible progress** — a baseline → now dashboard plus light **monthly check-ins**
+("re-measure yourself"). This is the "I see change" moment.
+
+**Streaks (adherence signals):** a **presence streak** (consecutive days the user
+opens the app — showing up is the first win against the scroll) alongside the
+perfect-day streak (all of today's path cleared).
+
+**Honest constraints:** what the app can't observe (weight, lifts, savings, screen
+time) is user-logged via the light monthly check-ins. Results depend on consistency
+and honest self-report. Fitness/health stays progressive, beginner-safe, disclaimed.
+
 ## First build (vertical slice)
 
 1. **Per-domain assessment** in onboarding for the first coaches.

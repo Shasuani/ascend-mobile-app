@@ -8,7 +8,7 @@
 //   { mode: 'quests', ... }  -> returns { text: "<minified quest JSON>" }
 //   { mode: 'recap',  ... }  -> returns { text: "<plain-text recap>" }
 
-const MODEL = 'claude-sonnet-4-6';
+const MODEL = 'claude-sonnet-5'; // current Sonnet — good quality/cost for weekly generation
 
 // The System prompt for quest generation — used verbatim from the spec (§6).
 const QUEST_SYSTEM = `You are THE SYSTEM — the entity that assigns quests to a Player to force their

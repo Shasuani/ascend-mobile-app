@@ -26,11 +26,15 @@ export function makeDefaultState() {
     journal: {}, // "YYYY-MM-DD" -> reflection text
     pointsSpent: { STR: 0, INT: 0, WLTH: 0, VIT: 0, FOC: 0 },
     penaltyXp: 0,
-    streak: 0,
+    streak: 0,          // perfect-day streak: all of today's path cleared
     longestStreak: 0,
     lastStreakDate: null,
+    visitStreak: 0,     // presence streak: consecutive days the app was opened
+    longestVisitStreak: 0,
+    lastVisitDate: null,
     lastActiveDate: null,
     penalty: { active: false, message: '' },
+    bossClaimedDate: null,  // last Weekly Trial claim — gates re-claiming to once/week
     comebackPending: false, // set on a miss; grants bonus XP on return (§8)
     lastGraceDate: null,    // last auto grace-day used (once/week) (§8)
     lastReviewDate: null,

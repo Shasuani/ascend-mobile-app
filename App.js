@@ -11,6 +11,19 @@ import {
   Rajdhani_700Bold,
 } from '@expo-google-fonts/rajdhani';
 import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono';
+import {
+  EBGaramond_500Medium,
+  EBGaramond_600SemiBold,
+  EBGaramond_400Regular_Italic,
+} from '@expo-google-fonts/eb-garamond';
+import {
+  JetBrainsMono_500Medium,
+  JetBrainsMono_600SemiBold,
+} from '@expo-google-fonts/jetbrains-mono';
+import {
+  NotoSerifJP_600SemiBold,
+  NotoSerifJP_900Black,
+} from '@expo-google-fonts/noto-serif-jp';
 
 import { colors } from './src/theme/tokens';
 import { StoreProvider, useStore } from './src/state/StoreContext';
@@ -53,6 +66,13 @@ export default function App() {
     Rajdhani_600SemiBold,
     Rajdhani_700Bold,
     ShareTechMono_400Regular,
+    EBGaramond_500Medium,
+    EBGaramond_600SemiBold,
+    EBGaramond_400Regular_Italic,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_600SemiBold,
+    NotoSerifJP_600SemiBold,
+    NotoSerifJP_900Black,
   });
 
   return (

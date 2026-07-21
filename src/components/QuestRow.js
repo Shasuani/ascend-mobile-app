@@ -1,81 +1,57 @@
-// One quest row: checkbox / title / "why" / time / attribute tag / xp (§11).
-// The checkbox "pops" on complete.
+// One line of the day's path. Left rail: the ring's element kanji over a round
+// check (tap to keep/unkeep). Body: the deed, its coach, minutes and merit — tap
+// to open its detail. Kept deeds fade and tint faintly crimson.
 
-import React, { useEffect, useRef } from 'react';
-import { View, Pressable, Animated, StyleSheet } from 'react-native';
-import { colors, space, fonts, ATTRS } from '../theme/tokens';
-import { Txt, Num, Label } from './typography';
+import React from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { colors, space } from '../theme/tokens';
+import { Title, Num, Txt, Kanji } from './typography';
+import { ringKanji, coachFor } from '../logic/mastery';
 
-export default function QuestRow({ quest, done, onToggle }) {
-  const accent = ATTRS[quest.attr]?.accent || colors.cyan;
-  const pop = useRef(new Animated.Value(done ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.spring(pop, { toValue: done ? 1 : 0, useNativeDriver: true, friction: 5 }).start();
-  }, [done, pop]);
-
-  const scale = pop.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.3, 1] });
-
+export default function QuestRow({ quest, done, onToggle, onOpen, last }) {
+  const mins = quest.duration_min ? `${quest.duration_min}m` : 'VOW';
   return (
-    <Pressable onPress={onToggle} style={styles.row}>
-      <Animated.View
-        style={[
-          styles.box,
-          { borderColor: done ? colors.cyan : colors.line, transform: [{ scale }] },
-          done && { backgroundColor: colors.cyan },
-        ]}
-      >
-        {done && <Txt color={colors.void} style={styles.check}>✓</Txt>}
-      </Animated.View>
-
-      <View style={styles.middle}>
-        <Txt
-          color={done ? colors.muted : colors.text}
-          style={[styles.title, done && styles.struck]}
-        >
-          {quest.title}
-        </Txt>
-        {!!quest.why && (
-          <Txt color={colors.muted} style={styles.why} numberOfLines={1}>
-            {quest.why}
-          </Txt>
-        )}
-      </View>
-
-      <View style={styles.right}>
-        <View style={[styles.tag, { borderColor: accent }]}>
-          <Label color={accent} style={{ fontSize: 9 }}>{quest.attr}</Label>
+    <View style={[styles.row, done && styles.rowDone, last && styles.rowLast]}>
+      <Pressable onPress={onToggle} style={styles.rail} hitSlop={6}>
+        <Kanji color={colors.muted} style={styles.kanji}>{ringKanji(quest.attr)}</Kanji>
+        <View style={[styles.check, done ? styles.checkOn : styles.checkOff]}>
+          {done && <Txt color={colors.ink} style={styles.tick}>✓</Txt>}
         </View>
-        <Num color={colors.gold} style={styles.xp}>+{quest.xp}</Num>
-        {!!quest.window && <Num color={colors.muted} style={styles.time}>{quest.window}</Num>}
-      </View>
-    </Pressable>
+      </Pressable>
+
+      <Pressable onPress={onOpen || onToggle} style={styles.body}>
+        <View style={{ flex: 1 }}>
+          <Title style={styles.title} color={done ? colors.muted : colors.text} numberOfLines={2}>
+            {quest.title}
+          </Title>
+          <Num color={colors.muted} style={styles.meta}>
+            {coachFor(quest.attr)} · {mins} · +{quest.xp || 0} MERIT
+          </Num>
+        </View>
+        <Title color={colors.faint} style={styles.chev}>›</Title>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: space.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line2,
+  row: { flexDirection: 'row', alignItems: 'stretch', backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.line2 },
+  rowDone: { backgroundColor: 'rgba(224,30,55,0.05)' },
+  rowLast: { borderBottomWidth: 0 },
+  rail: {
+    width: 56, alignItems: 'center', justifyContent: 'center', gap: 9,
+    paddingVertical: 14, borderRightWidth: 1, borderRightColor: colors.line2,
   },
-  box: {
-    width: 24,
-    height: 24,
-    borderWidth: 1.5,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+  kanji: { fontSize: 15, lineHeight: 18 },
+  check: {
+    width: 24, height: 24, borderRadius: 12, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
   },
-  check: { fontSize: 15, fontFamily: fonts.displayBold, lineHeight: 20 },
-  middle: { flex: 1, paddingHorizontal: space.md },
-  title: { fontSize: 16 },
-  struck: { textDecorationLine: 'line-through' },
-  why: { fontSize: 11, marginTop: 2 },
-  right: { alignItems: 'flex-end' },
-  tag: { borderWidth: 1, borderRadius: 3, paddingHorizontal: 5, paddingVertical: 1 },
-  xp: { fontSize: 13, marginTop: 3 },
-  time: { fontSize: 11, marginTop: 1 },
+  checkOff: { borderColor: colors.faint, backgroundColor: 'transparent' },
+  checkOn: { borderColor: colors.cyan, backgroundColor: colors.cyan },
+  tick: { fontSize: 13, lineHeight: 16 },
+  body: { flex: 1, paddingVertical: 13, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  title: { fontSize: 17, lineHeight: 20, letterSpacing: 0.2 },
+  meta: { fontSize: 9.5, marginTop: 4, letterSpacing: 0.4 },
+  chev: { fontSize: 20, lineHeight: 22 },
 });
