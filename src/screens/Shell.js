@@ -6,14 +6,14 @@ import { View, StyleSheet } from 'react-native';
 import { colors } from '../theme/tokens';
 import Main from './Main';
 import Hubs from './Hubs';
-import Journey from './Journey';
+import Rings from './Rings';
 import Journal from './Journal';
 import BottomNav from '../components/BottomNav';
 
 const SCREENS = {
   quests: Main,
   hubs: Hubs,
-  journey: Journey,
+  journey: Rings,
   journal: Journal,
 };
 

@@ -1,21 +1,23 @@
-// Journal — a daily reflection tied to Focus. The first entry each day grants
-// FOC XP. Past entries are saved per-account and browsable below.
+// The Ledger (日記) — a daily reflection tied to Focus. The first entry each day
+// grants FOC XP. Past entries are sealed below, newest first.
 
 import React, { useState } from 'react';
-import { ScrollView, View, TextInput, StyleSheet, Keyboard } from 'react-native';
-import { colors, space, fonts, glow } from '../theme/tokens';
-import { Title, Label, Txt, Num } from '../components/typography';
-import SystemWindow from '../components/SystemWindow';
-import GlowButton from '../components/GlowButton';
+import { ScrollView, View, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native';
+import { colors, space, fonts } from '../theme/tokens';
+import { Title, Label, Txt, Num, Precept, Kanji } from '../components/typography';
 import { useStore } from '../state/StoreContext';
 import { dateKey } from '../logic/dates';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 function pretty(key) {
   const d = new Date(key + 'T00:00:00');
   return `${DOW[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+function shortDate(key) {
+  const d = new Date(key + 'T00:00:00');
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 export default function Journal() {
@@ -38,100 +40,89 @@ export default function Journal() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <View style={styles.head}>
-        <View>
-          <Label color={colors.cyanDim}>Focus</Label>
-          <Title style={{ marginTop: 2 }}>Reflection Log</Title>
+        <View style={styles.headTitle}>
+          <Kanji color={colors.text} style={{ fontSize: 22 }}>日記</Kanji>
+          <Title style={{ fontSize: 22 }}> · The Ledger</Title>
         </View>
         <View style={styles.count}>
-          <Num color={colors.cyan} style={{ fontSize: 26 }}>{totalEntries}</Num>
-          <Label>entries</Label>
+          <Num color={colors.cyan} style={{ fontSize: 24 }}>{totalEntries}</Num>
+          <Label color={colors.muted} style={{ fontSize: 9 }}>Entries</Label>
         </View>
       </View>
 
       {/* Today's entry */}
-      <SystemWindow style={styles.today} accent={colors.cyan}>
-        <View style={styles.todayHead}>
-          <Label color={colors.cyan}>Today · {pretty(today)}</Label>
-          {savedToday && <Label color={colors.green}>✓ saved</Label>}
-        </View>
+      <View style={styles.today}>
+        <Num color={colors.cyan} style={styles.todayDate}>TODAY · {pretty(today)}</Num>
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="What did you conquer today? What resisted you? Where did the scroll try to pull you back?"
+          placeholder="What did the Way ask of you today? Where did you falter?"
           placeholderTextColor={colors.muted}
           style={styles.input}
           multiline
         />
-        <GlowButton
-          label={savedToday ? 'UPDATE ENTRY' : 'SAVE · +20 FOCUS'}
-          onPress={save}
-          style={{ marginTop: space.md }}
-        />
-        {!savedToday && (
-          <Txt color={colors.muted} style={{ fontSize: 12, marginTop: space.sm }}>
-            Your first entry each day grants +20 Focus XP.
-          </Txt>
-        )}
-      </SystemWindow>
+        <View style={styles.todayFoot}>
+          <Num color={colors.muted} style={{ fontSize: 9.5 }}>
+            {savedToday ? '✓ SEALED' : 'FIRST ENTRY · +20 FOCUS'}
+          </Num>
+          <Pressable onPress={save} style={styles.seal}>
+            <Title color={colors.text} style={{ fontSize: 14 }}>{savedToday ? 'Reseal' : 'Seal it'}</Title>
+          </Pressable>
+        </View>
+      </View>
 
       {/* History */}
       <View style={styles.histHead}>
-        <Label>Past reflections</Label>
-        {past.length > 0 && <Label color={colors.muted}>{past.length}</Label>}
+        <Label color={colors.muted}>Past Reflections</Label>
+        {past.length > 0 && <Num color={colors.muted} style={{ fontSize: 11 }}>{past.length}</Num>}
       </View>
 
       {past.length === 0 ? (
         <View style={styles.empty}>
-          <Txt color={colors.muted} style={{ textAlign: 'center', lineHeight: 20 }}>
-            No past entries yet.{'\n'}Write today, and your history builds here — one day at a time.
-          </Txt>
+          <Precept color={colors.muted2} style={{ textAlign: 'center', lineHeight: 22 }}>
+            No sealed reflections yet. Write today, and your ledger builds — one day at a time.
+          </Precept>
         </View>
       ) : (
         past.map((k) => (
-          <View key={k} style={[styles.entry, glow(colors.cyan, 6, 0.08)]}>
-            <View style={styles.entryBar} />
-            <View style={{ flex: 1 }}>
-              <Label color={colors.cyanDim}>{pretty(k)}</Label>
-              <Txt color={colors.text} style={styles.entryText}>{state.journal[k]}</Txt>
+          <View key={k} style={styles.entry}>
+            <View style={styles.entryHead}>
+              <Num color={colors.text} style={styles.entryDate}>{shortDate(k)}</Num>
+              <View style={styles.tag}><Num color={colors.cyan} style={{ fontSize: 9 }}>SEALED</Num></View>
             </View>
+            <Precept color={colors.text2} style={styles.entryText}>{state.journal[k]}</Precept>
           </View>
         ))
       )}
 
-      <View style={{ height: 48 }} />
+      <View style={{ height: 90 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { padding: space.md, paddingTop: 56 },
+  screen: { paddingHorizontal: space.xl, paddingTop: 64 },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  headTitle: { flexDirection: 'row', alignItems: 'baseline' },
   count: { alignItems: 'flex-end' },
-  today: { marginTop: space.lg },
-  todayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
+
+  today: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: 16, marginTop: space.lg },
+  todayDate: { fontSize: 11, letterSpacing: 1 },
   input: {
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 6,
-    padding: space.md,
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    minHeight: 130,
-    textAlignVertical: 'top',
-    backgroundColor: '#1a1012',
-    lineHeight: 22,
+    color: colors.text, fontFamily: fonts.body, fontSize: 16, lineHeight: 23,
+    minHeight: 84, textAlignVertical: 'top', marginTop: 10,
   },
+  todayFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12, marginTop: 8 },
+  seal: { backgroundColor: colors.cyan, paddingVertical: 8, paddingHorizontal: 20 },
+
   histHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.xl, marginBottom: space.md },
-  empty: {
-    padding: space.xl, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.line2,
-  },
-  entry: {
-    flexDirection: 'row', gap: space.md, backgroundColor: colors.panel,
-    borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: space.md, marginBottom: space.md,
-  },
-  entryBar: { width: 3, borderRadius: 2, backgroundColor: colors.cyan },
-  entryText: { marginTop: 6, lineHeight: 21, fontSize: 14.5 },
+  empty: { borderWidth: 1, borderColor: colors.line2, padding: space.xl },
+
+  entry: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, padding: 16, marginBottom: 14 },
+  entryHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 },
+  entryDate: { fontSize: 11, letterSpacing: 1 },
+  tag: { borderWidth: 1, borderColor: colors.crimsonLine, paddingHorizontal: 8, paddingVertical: 2 },
+  entryText: { fontSize: 16, lineHeight: 23 },
 });

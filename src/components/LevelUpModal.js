@@ -1,18 +1,17 @@
-// Level-Up celebration (§12): gold number, rotating light rays, four L-shaped
-// corner brackets, spring-in. Respects reduce-motion.
+// Ascension — the rite shown when the player crosses into a new stage of mastery
+// (or simply levels up). An ensō draws around the stage kanji; a Musashi-toned
+// line marks the moment. Respects reduce-motion.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, View, Pressable, Animated, Easing, AccessibilityInfo, StyleSheet } from 'react-native';
-import { colors, space, fonts } from '../theme/tokens';
-import { Title, Label, Num } from './typography';
-
-function Bracket({ style }) {
-  return <View style={[styles.bracket, style]} />;
-}
+import { Modal, View, Pressable, Animated, AccessibilityInfo, StyleSheet } from 'react-native';
+import { colors, space } from '../theme/tokens';
+import { Title, Label, Precept, Kanji } from './typography';
+import Enso from './Enso';
+import { stageForLevel } from '../logic/mastery';
 
 export default function LevelUpModal({ visible, level, onClose }) {
-  const spin = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.6)).current;
+  const scale = useRef(new Animated.Value(0.7)).current;
+  const breath = useRef(new Animated.Value(0.5)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -21,76 +20,61 @@ export default function LevelUpModal({ visible, level, onClose }) {
 
   useEffect(() => {
     if (!visible) return;
-    scale.setValue(0.6);
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5 }).start();
+    scale.setValue(0.7);
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }).start();
     if (reduceMotion) return;
     const loop = Animated.loop(
-      Animated.timing(spin, { toValue: 1, duration: 8000, easing: Easing.linear, useNativeDriver: true })
+      Animated.sequence([
+        Animated.timing(breath, { toValue: 0.85, duration: 1100, useNativeDriver: true }),
+        Animated.timing(breath, { toValue: 0.5, duration: 1100, useNativeDriver: true }),
+      ])
     );
     loop.start();
     return () => loop.stop();
-  }, [visible, reduceMotion, spin, scale]);
+  }, [visible, reduceMotion, scale, breath]);
 
-  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const stage = stageForLevel(level || 1);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
-          {!reduceMotion && (
-            <Animated.View style={[styles.rays, { transform: [{ rotate }] }]} pointerEvents="none">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.ray, { transform: [{ rotate: `${i * 30}deg` }] }]}
-                />
-              ))}
-            </Animated.View>
-          )}
+      <View style={styles.backdrop}>
+        <Animated.View style={[styles.body, { transform: [{ scale }] }]}>
+          <Animated.View style={{ opacity: reduceMotion ? 1 : breath }}>
+            <Label color={colors.cyan} style={styles.kicker}>昇 · Ascension</Label>
+          </Animated.View>
 
-          <Bracket style={styles.tl} />
-          <Bracket style={styles.tr} />
-          <Bracket style={styles.bl} />
-          <Bracket style={styles.br} />
+          <View style={styles.enso}>
+            <Enso size={170} stroke={3.5} arc={238} rotate={-118}>
+              <Kanji color={colors.text} style={{ fontSize: 76, lineHeight: 86 }}>{stage.kanji}</Kanji>
+            </Enso>
+          </View>
 
-          <Label color={colors.gold}>Level Up</Label>
-          <Num color={colors.gold} style={styles.big}>{level}</Num>
-          <Title color={colors.text} style={{ fontSize: 14 }}>+2 ATTRIBUTE POINTS</Title>
-          <Label color={colors.muted} style={{ marginTop: space.md }}>Tap to continue</Label>
+          <Title style={styles.name}>{stage.name}</Title>
+          <Precept color={colors.text2} style={styles.msg}>
+            The System acknowledges your discipline. You have risen to {stage.name}. This
+            stage will ask more of you than the last.
+          </Precept>
         </Animated.View>
-      </Pressable>
+
+        <Pressable onPress={onClose} style={styles.button}>
+          <Title color={colors.text} style={styles.buttonLabel}>Walk on</Title>
+        </Pressable>
+      </View>
     </Modal>
   );
 }
 
-const BRACKET = 22;
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(2,4,10,0.85)', alignItems: 'center', justifyContent: 'center' },
-  card: {
-    width: 260,
-    height: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    shadowColor: colors.gold,
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 0 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(8,4,5,0.97)', alignItems: 'center', justifyContent: 'center', padding: 40 },
+  body: { alignItems: 'center' },
+  kicker: { fontSize: 12, letterSpacing: 6 },
+  enso: { marginTop: 26 },
+  name: { fontSize: 34, letterSpacing: 1, marginTop: 22 },
+  msg: { fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 14, maxWidth: 300 },
+  button: {
+    position: 'absolute', bottom: 70,
+    backgroundColor: colors.cyan, paddingVertical: 14, paddingHorizontal: 46,
+    shadowColor: colors.cyan, shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
   },
-  big: { fontSize: 84, lineHeight: 92, marginVertical: space.sm },
-  rays: { position: 'absolute', width: 400, height: 400, alignItems: 'center', justifyContent: 'center' },
-  ray: {
-    position: 'absolute',
-    width: 1,
-    height: 400,
-    backgroundColor: colors.gold,
-    opacity: 0.08,
-  },
-  bracket: { position: 'absolute', width: BRACKET, height: BRACKET, borderColor: colors.gold },
-  tl: { top: -1, left: -1, borderTopWidth: 2, borderLeftWidth: 2 },
-  tr: { top: -1, right: -1, borderTopWidth: 2, borderRightWidth: 2 },
-  bl: { bottom: -1, left: -1, borderBottomWidth: 2, borderLeftWidth: 2 },
-  br: { bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2 },
+  buttonLabel: { fontSize: 17, letterSpacing: 0.5 },
 });

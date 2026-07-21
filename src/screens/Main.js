@@ -9,24 +9,24 @@ import { colors, space, gradients } from '../theme/tokens';
 import { Title, Label, Txt, Num, Precept, Kanji } from '../components/typography';
 import Enso from '../components/Enso';
 import QuestRow from '../components/QuestRow';
+import QuestSheet from '../components/QuestSheet';
 import PenaltyBanner from '../components/PenaltyBanner';
 import LevelUpModal from '../components/LevelUpModal';
 import SystemReportModal from '../components/SystemReportModal';
-import SettingsModal from '../components/SettingsModal';
+import Profile from './Profile';
 import { dateKey, daysBetween } from '../logic/dates';
 import { localRecap } from '../logic/review';
 import { stageForLevel, nextStage } from '../logic/mastery';
 import { preceptForToday, romanize, kanjiNum } from '../data/dokkodo';
 import { useStore } from '../state/StoreContext';
-import { useAuth } from '../auth/AuthContext';
 
 export default function Main() {
   const { state, stats, board, isWorkToday, reviewReady, actions } = useStore();
-  const { actions: authActions } = useAuth();
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [report, setReport] = useState(null);
   const [levelUp, setLevelUp] = useState(null);
+  const [selected, setSelected] = useState(null);
   const prevLevel = useRef(stats.level);
   const reviewRan = useRef(false);
 
@@ -69,7 +69,7 @@ export default function Main() {
             </View>
             <Title style={styles.name} numberOfLines={1}>{titleCase(state.name)}</Title>
           </View>
-          <Pressable style={styles.profileBtn} onPress={() => setSettingsOpen(true)}>
+          <Pressable style={styles.profileBtn} onPress={() => setProfileOpen(true)}>
             <Kanji color={colors.muted2} style={{ fontSize: 18 }}>己</Kanji>
           </Pressable>
         </View>
@@ -135,6 +135,7 @@ export default function Main() {
                 quest={q}
                 done={!!todayEntry[q.id]}
                 onToggle={() => actions.toggleQuest(q)}
+                onOpen={() => setSelected(q)}
                 last={i === board.length - 1}
               />
             ))}
@@ -183,6 +184,13 @@ export default function Main() {
         <PenaltyBanner message={state.penalty.message} onDismiss={actions.dismissPenalty} />
       )}
 
+      <QuestSheet
+        quest={selected}
+        done={selected ? !!todayEntry[selected.id] : false}
+        onToggle={() => selected && actions.toggleQuest(selected)}
+        onClose={() => setSelected(null)}
+      />
+
       <LevelUpModal visible={levelUp != null} level={levelUp || stats.level} onClose={() => setLevelUp(null)} />
 
       {report && (
@@ -193,12 +201,10 @@ export default function Main() {
         />
       )}
 
-      <SettingsModal
-        visible={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+      <Profile
+        visible={profileOpen}
+        onClose={() => setProfileOpen(false)}
         onReview={() => actions.runReview().then(setReport)}
-        onReset={actions.resetAll}
-        onLogout={authActions.logOut}
       />
     </View>
   );
