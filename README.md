@@ -1,16 +1,16 @@
-# ASCEND — Self-Improvement App
+# ASCEND: Self-Improvement App
 
-A React Native (Expo) app that turns long-term goals into a **done-for-you daily plan**. Instead of building your own system, you get a weekly plan built around your real schedule. You complete daily quests, earn XP and climb ranks, and the plan adapts to how you actually perform.
+A React Native (Expo) app that turns long-term goals into a done-for-you daily plan. Instead of building your own system, you get a weekly plan built around your real schedule. You complete daily quests, earn XP and climb ranks, and the plan adapts to how you actually perform.
 
 ## Features
 
-- **Calibration onboarding.** Captures your baseline and weekly schedule, then generates a personalised first week.
-- **Daily quests across life domains.** A timed plan for each day, with XP, levels, rank tiers and an attribute radar chart.
-- **Adaptive weekly review.** Difficulty goes up or down based on your real completion rate. Missed days cost a small amount of XP, never a full reset.
-- **AI plan generation with offline fallback.** When an AI proxy is configured, weekly plans and recaps are generated with Claude. Otherwise an on-device generator produces them, so the app works **100% offline**.
-- **Secure AI proxy.** A Cloudflare Worker ([`proxy/`](proxy)) holds the API key, so it never ships in the mobile client.
-- **Library, journal and journey views.** Curated self-improvement books, daily reflections and a history of your progress.
-- **Local accounts with per-account progress,** persisted with AsyncStorage, and **local notifications** for reminders.
+- Calibration onboarding: Captures your baseline and weekly schedule, then generates a personalised first week.
+- Daily quests across life domains: A timed plan for each day, with XP, levels, rank tiers and an attribute radar chart.
+- Adaptive weekly review: Difficulty goes up or down based on your real completion rate. Missed days cost a small amount of XP, never a full reset.
+- AI plan generation with offline fallback: When an AI proxy is configured, weekly plans and recaps are generated with Claude. Otherwise an on-device generator produces them, so the app works 100% offline.
+- Secure AI proxy: A Cloudflare Worker ([`proxy/`](proxy)) holds the API key, so it never ships in the mobile client.
+- Library, journal and journey views: Curated self-improvement books, daily reflections and a history of your progress.
+- Local accounts with per-account progress persisted with AsyncStorage, and local notifications for reminders.
 
 ## Tech stack
 
@@ -32,7 +32,7 @@ src/
 proxy/            # Cloudflare Worker that calls the Anthropic Messages API
 ```
 
-The game rules live in **pure, framework-free modules** under `src/logic/`. This keeps them unit-testable and independent of the UI.
+The game rules live in pure, framework-free modules under `src/logic/`. This keeps them unit-testable and independent of the UI.
 
 ## Getting started
 
